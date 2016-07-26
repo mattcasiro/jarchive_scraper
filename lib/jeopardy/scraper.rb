@@ -18,7 +18,7 @@ module Jeopardy
     # If no source is provided, a random game from a random season is selected
     # Pre: web sources must be fully qualified
     def new_game!(source=nil)
-      source = game_list(season_list.sample).sample unless source
+      source = games(seasons.sample).sample unless source
       @doc = parse source
       games.push Game.new(source, rounds)
       @game = games.last
@@ -27,8 +27,8 @@ module Jeopardy
     private
     attr_reader :doc, :games
     SeasonsURL = "http://www.j-archive.com/listseasons.php"
-    TestSeasons = 'test/jeopardy/files/seasons.html'
-    TestGames = 'test/jeopardy/files/episodes.html'
+    #TestSeasons = 'test/jeopardy/files/seasons.html'
+    #TestGames = 'test/jeopardy/files/episodes.html'
 
     # Uncaught error: Errno::ENOENT if path is invalid
     def parse source
@@ -36,17 +36,17 @@ module Jeopardy
     end
 
     # Get a list of all seasons of Jeopardy from JArchive or a provided source
-    def season_list(source=SeasonsURL)
-      seasons = parse source
+    def seasons(source=SeasonsURL)
+      seasons_node = parse source
       # 'Real' seasons have names that end in a number (exclude pilot and super jeapordy seasons)
-      real_seasons = seasons.xpath("//div[@id='content']//a").select { |season| ('0'..'9').include? season.text[-1] }
+      real_seasons = seasons_node.xpath("//div[@id='content']//a").select { |season| ('0'..'9').include? season.text[-1] }
       real_seasons.map { |season| season["href"] }.reverse 
     end
 
     # Get a list of all games of Jeopardy from a season, from JArchive or a provided source
-    def game_list(source=TestGames)
-      episodes = parse source
-      episodes.xpath("//div[@id='content']//table//a").map { |episode| episode["href"] }.reverse
+    def games(source)
+      games_node = parse source
+      games_node.xpath("//div[@id='content']//table//a").map { |episode| episode["href"] }.reverse
     end
     
     # Get an array of rounds from the parsed document
