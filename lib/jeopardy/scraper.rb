@@ -12,55 +12,40 @@ module Jeopardy
 
     def initialize
       @games = []
-      @random = Random.new(Time.now.to_i)
     end
 
     # Create a new game of jeopardy from a given JArchive source
-    # If no source is provided, a random game from a random season is returned
-    def new_game!(source=random_game_uri)
-      @doc = parse(source)
+    # If no source is provided, a random game from a random season is selected
+    # Pre: web sources must be fully qualified
+    def new_game!(source=nil)
+      source = game_list(season_list.sample).sample unless source
+      @doc = parse source
       games.push Game.new(source, rounds)
       @game = games.last
     end
 
     private
-    attr_reader :source, :doc, :games, :random
+    attr_reader :doc, :games
     SeasonsURL = "http://www.j-archive.com/listseasons.php"
     TestSeasons = 'test/jeopardy/files/seasons.html'
     TestGames = 'test/jeopardy/files/episodes.html'
 
-    # Generate a parsed object from a given JArchive web source or file
-    def parse(source)
-      if source.include?("www.j-archive.com/")
-        Nokogiri::HTML(open(source))
-      else
-        File.open(source) { |f| Nokogiri::HTML(f) }
-      end
+    # Uncaught error: Errno::ENOENT if path is invalid
+    def parse source
+      Nokogiri::HTML(open(source))
     end
-    
-    # Get a URI for a randomly selected game of Jeopardy
-    def random_game_uri
-      seasons = season_list(SeasonsURL)
-      season = random.rand(seasons.length)
-      games = game_list(season_list[season])
-      game = random.rand(games.length)
-      # TODO Remove debug statements x2
-      puts "DEBUG: a random game is: S#{season+1} E#{game+1}"
-      puts "DEBUG: source URL: #{games[game]}"
-      games[game]
-    end
-    
+
     # Get a list of all seasons of Jeopardy from JArchive or a provided source
-    def season_list(url=TestSeasons)
-      seasons = parse url
+    def season_list(source=SeasonsURL)
+      seasons = parse source
       # 'Real' seasons have names that end in a number (exclude pilot and super jeapordy seasons)
-      real_seasons = seasons.xpath("//div[@id='content']//a").select { |season| Float(season.text[-1]) rescue false }
+      real_seasons = seasons.xpath("//div[@id='content']//a").select { |season| ('0'..'9').include? season.text[-1] }
       real_seasons.map { |season| season["href"] }.reverse 
     end
 
     # Get a list of all games of Jeopardy from a season, from JArchive or a provided source
-    def game_list(url=TestGames)
-      episodes = parse url
+    def game_list(source=TestGames)
+      episodes = parse source
       episodes.xpath("//div[@id='content']//table//a").map { |episode| episode["href"] }.reverse
     end
     
