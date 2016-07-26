@@ -12,48 +12,49 @@ module Jeopardy
 
     def initialize
       @games = []
+      @random = Random.new(Time.now.to_i)
     end
 
+    # Create a new game of jeopardy from a given JArchive source
+    # If no source is provided, a random game from a random season is returned
     def new_game!(source=random_game_uri)
       @doc = parse(source)
-      @game = Game.new(source, rounds)
+      games.push Game.new(source, rounds)
+      @game = games.last
     end
 
     private
-    attr_reader :source, :doc
+    attr_reader :source, :doc, :games, :random
+    SeasonsURL = "http://www.j-archive.com/listseasons.php"
 
     def parse(source)
-      if valid_uri?(source)
+      if source.include?("www.j-archive.com/")
         Nokogiri::HTML(open(source))
       else
         File.open(source) { |f| Nokogiri::HTML(f) }
       end
     end
     
-    def valid_uri?(source)
-      source.include?("www.j-archive.com/")
-    end
-
     def random_game_uri
-      r = Random.new(Time.now.to_i)
-      seasons = season_list("http://www.j-archive.com/listseasons.php")
-      season = r.rand(seasons.length)
+      seasons = season_list(SeasonsURL)
+      season = random.rand(seasons.length)
       games = game_list(season_list[season])
-      game = r.rand(games.length)
+      game = random.rand(games.length)
+      # TODO Remove debug statements x2
       puts "DEBUG: a random game is: S#{season+1} E#{game+1}"
       puts "DEBUG: source URL: #{games[game]}"
       games[game]
     end
     
     def season_list(url='test/jeopardy/files/seasons.html')
-      seasons = parse(url)
-      # 'Real' seasons have names that end in a number (excludes pilots and super jeapordy seasons)
+      seasons = parse url
+      # 'Real' seasons have names that end in a number (exclude pilot and super jeapordy seasons)
       real_seasons = seasons.xpath("//div[@id='content']//a").select { |season| Float(season.text[-1]) rescue false }
       real_seasons.map { |season| season["href"] }.reverse 
     end
 
     def game_list(url='test/jeopardy/files/episodes.html')
-      episodes = parse(url)
+      episodes = parse url
       episodes.xpath("//div[@id='content']//table//a").map { |episode| episode["href"] }.reverse
     end
     
@@ -108,6 +109,7 @@ module Jeopardy
         last = dirty.index("</em>", first)
         dirty[first...last]
       rescue
+        # If any step fails, return nil
         nil
       end
     end
