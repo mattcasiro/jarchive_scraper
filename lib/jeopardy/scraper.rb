@@ -26,7 +26,10 @@ module Jeopardy
     private
     attr_reader :source, :doc, :games, :random
     SeasonsURL = "http://www.j-archive.com/listseasons.php"
+    TestSeasons = 'test/jeopardy/files/seasons.html'
+    TestGames = 'test/jeopardy/files/episodes.html'
 
+    # Generate a parsed object from a given JArchive web source or file
     def parse(source)
       if source.include?("www.j-archive.com/")
         Nokogiri::HTML(open(source))
@@ -35,6 +38,7 @@ module Jeopardy
       end
     end
     
+    # Get a URI for a randomly selected game of Jeopardy
     def random_game_uri
       seasons = season_list(SeasonsURL)
       season = random.rand(seasons.length)
@@ -46,19 +50,23 @@ module Jeopardy
       games[game]
     end
     
-    def season_list(url='test/jeopardy/files/seasons.html')
+    # Get a list of all seasons of Jeopardy from JArchive or a provided source
+    def season_list(url=TestSeasons)
       seasons = parse url
       # 'Real' seasons have names that end in a number (exclude pilot and super jeapordy seasons)
       real_seasons = seasons.xpath("//div[@id='content']//a").select { |season| Float(season.text[-1]) rescue false }
       real_seasons.map { |season| season["href"] }.reverse 
     end
 
-    def game_list(url='test/jeopardy/files/episodes.html')
+    # Get a list of all games of Jeopardy from a season, from JArchive or a provided source
+    def game_list(url=TestGames)
       episodes = parse url
       episodes.xpath("//div[@id='content']//table//a").map { |episode| episode["href"] }.reverse
     end
     
+    # Get an array of rounds from the parsed document
     def rounds
+      # Rounds are split in to nodes as round 1, round 2, and final round
       r_1_node, r_2_node = doc.xpath("//table[@class='round']")
       final_node = doc.xpath("//table[@class='final_round']").first
       
@@ -69,6 +77,7 @@ module Jeopardy
       rounds
     end
 
+    # Get an array of all categories from the provided source node
     def categories(node)
       category_names = node.xpath(".//td[@class='category_name']").map { |cat| cat.text }
       clue_nodes = node.xpath(".//td[@class='clue']")
@@ -78,12 +87,14 @@ module Jeopardy
       end
     end
 
+    # Get an array containing the final round from the provided source
     def final_categories(node)
       question = clean_question(node.xpath(".//div//@onmouseover")&.first&.value)
       answer = clean_answer (node.xpath(".//div//@onmouseout")&.first&.value)
       [Category.new("Final Jeopardy", Clue.new(question, answer, 0))]
     end
 
+    # Get an array of all clues for a given category (represented numerically) from a given source
     def clues(clue_nodes, i)
       (i..29).step(6).map do |j|
         question = clean_question(clue_nodes[j].xpath(".//div//@onmouseover")&.first&.value)
@@ -92,6 +103,7 @@ module Jeopardy
       end
     end
 
+    # Get the clean string representation of an answer from a given string source
     def clean_answer(dirty)
       begin
         first = dirty.index(/(?<=stuck', ')./)
@@ -103,6 +115,7 @@ module Jeopardy
       end
     end
 
+    # Get the clean string representation of a question from a given string source
     def clean_question(dirty)
       begin
         first = (dirty.index(/(?<=correct_response\">)./) || dirty.index(/(?<=correct_response\\">)./))
