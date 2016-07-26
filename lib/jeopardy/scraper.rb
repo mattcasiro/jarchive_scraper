@@ -1,6 +1,5 @@
 require 'nokogiri'
 require 'open-uri'
-require 'pry'
 
 module Jeopardy
   class MissingRoundError < StandardError
@@ -19,7 +18,7 @@ module Jeopardy
     # If no source is provided, a random game from a random season is selected
     # Pre: web sources must be fully qualified
     def new_game!(source=nil)
-      source = game_list(season_list.sample).sample unless source
+      source = games(seasons.sample).sample unless source
       @doc = parse source
       games.push(Game.new(source, rounds))
       @game = games.last
