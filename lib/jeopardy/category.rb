@@ -8,9 +8,5 @@ module Jeopardy
       @name = name
       @clues = clue_array
     end
-
-    def clue(index)
-      clues[index]
-    end
   end
 end
