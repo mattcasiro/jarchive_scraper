@@ -2,9 +2,10 @@ require 'nokogiri'
 require 'open-uri'
 require 'time'
 require 'pry'
-require 'round'
-require 'category'
-require 'clue'
+require 'jeopardy/game'
+require 'jeopardy/round'
+require 'jeopardy/category'
+require 'jeopardy/clue'
 
 module Jeopardy
   class JArchiveScraper
@@ -18,9 +19,9 @@ module Jeopardy
     # If no source is provided, a random game from a random season is selected
     # Pre: web sources must be fully qualified
     def new_game!(source=nil)
-      source = games(seasons.sample).sample unless source
+      source = game_list(season_list.sample).sample unless source
       @doc = parse source
-      games.push Game.new(source, rounds)
+      games.push(Game.new(source, rounds))
       @game = games.last
     end
 
@@ -36,15 +37,16 @@ module Jeopardy
     end
 
     # Get a list of all seasons of Jeopardy from JArchive or a provided source
-    def seasons(source=SeasonsURL)
+    def season_list(source=SeasonsURL)
       seasons_node = parse source
       # 'Real' seasons have names that end in a number (exclude pilot and super jeapordy seasons)
       real_seasons = seasons_node.xpath("//div[@id='content']//a").select { |season| ('0'..'9').include? season.text[-1] }
-      real_seasons.map { |season| season["href"] }.reverse 
+      real_seasons.map { |season| "http://www.j-archive.com/#{season['href']}" }.reverse 
     end
 
     # Get a list of all games of Jeopardy from a season, from JArchive or a provided source
-    def games(source)
+    def game_list(source)
+      binding.pry
       games_node = parse source
       games_node.xpath("//div[@id='content']//table//a").map { |episode| episode["href"] }.reverse
     end
@@ -76,7 +78,7 @@ module Jeopardy
     def final_categories(node)
       question = clean_question(node.xpath(".//div//@onmouseover")&.first&.value)
       answer = clean_answer (node.xpath(".//div//@onmouseout")&.first&.value)
-      [Category.new("Final Jeopardy", Clue.new(question, answer, 0))]
+      [Category.new("Final Jeopardy", [Clue.new(question, answer, 0)])]
     end
 
     # Get an array of all clues for a given category (represented numerically) from a given source
