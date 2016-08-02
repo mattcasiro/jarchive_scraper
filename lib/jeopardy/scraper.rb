@@ -8,6 +8,9 @@ require 'jeopardy/category'
 require 'jeopardy/clue'
 
 module Jeopardy
+  class MissingRoundError < StandardError
+  end
+
   class JArchiveScraper
     attr_reader :game
 
@@ -56,6 +59,7 @@ module Jeopardy
       # Rounds are split in to nodes as round 1, round 2, and final round
       r_1_node, r_2_node = doc.xpath("//table[@class='round']")
       final_node = doc.xpath("//table[@class='final_round']").first
+      raise MissingRoundError unless r_1_node && r_2_node && final_node
       
       rounds = []
       rounds[0] = Round.new(categories(r_1_node))
@@ -87,6 +91,12 @@ module Jeopardy
       (i..29).step(6).map do |j|
         question = clean_question(clue_nodes[j].xpath(".//div//@onmouseover")&.first&.value)
         answer = clean_answer(clue_nodes[j].xpath(".//div//@onmouseout")&.first&.value)
+
+        # Make q's and a's with bad data 'nil'
+        if question.eql?(answer) || (question.eql?("=") && answer.eql?("?"))
+          question = answer = nil
+        end
+
         Clue.new(question, answer)
       end
     end
