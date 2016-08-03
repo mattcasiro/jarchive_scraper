@@ -20,11 +20,20 @@ module Jeopardy
         end
 
         context "each category" do
-          it "has five clues" do
+          it "has five clues with valid values" do
             subject.rounds.each_with_index do |r, i|
-              break if i > 1
-              r.categories.each do |cat|
-                expect(cat.clues.count).to eql(5)
+              break if i > 1    # ignore final jeopardy round
+
+              r.categories.each do |category|
+                expect(category.clues.count).to eql(5)
+
+                category.clues.each do |clue|
+                  if clue.question.nil? || clue.answer.nil?
+                    expect(clue.value).to eql(nil)
+                  else
+                    expect(clue.value).to be > 0
+                  end
+                end
               end
             end
           end

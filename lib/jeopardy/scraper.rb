@@ -1,17 +1,14 @@
 require 'nokogiri'
 require 'open-uri'
-require 'time'
 require 'pry'
-require 'jeopardy/game'
-require 'jeopardy/round'
-require 'jeopardy/category'
-require 'jeopardy/clue'
 
 module Jeopardy
   class MissingRoundError < StandardError
   end
 
   class JArchiveScraper
+    J_MULTIPLIER = 100
+    DJ_MULTIPLIER = 200
     attr_reader :game
 
     def initialize
@@ -91,13 +88,14 @@ module Jeopardy
       (i..29).step(6).map do |j|
         question = clean_question(clue_nodes[j].xpath(".//div//@onmouseover")&.first&.value)
         answer = clean_answer(clue_nodes[j].xpath(".//div//@onmouseout")&.first&.value)
+        value = clue_value(clue_nodes[j].xpath(".//@id")&.last&.value)
 
         # Make q's and a's with bad data 'nil'
         if question.eql?(answer) || (question.eql?("=") && answer.eql?("?"))
           question = answer = nil
         end
 
-        Clue.new(question, answer)
+        Clue.new(question, answer, value)
       end
     end
 
@@ -123,6 +121,13 @@ module Jeopardy
         # If any step fails, return nil
         nil
       end
+    end
+
+    # Calculate the clue value based on the grid co-ordinates
+    def clue_value(id_tag)
+      return nil if id_tag.nil?
+      level = id_tag[-1].to_i
+      id_tag.include?("DJ") ? level * DJ_MULTIPLIER : level * J_MULTIPLIER
     end
   end
 end
