@@ -14,11 +14,12 @@ module Jeopardy
       @games = []
     end
 
-    # Create a new game of jeopardy from a given JArchive source
-    # If no source is provided, a random game from a random season is selected
-    # Pre: web sources must be fully qualified
+    # Create a new game of jeopardy from a JArchive game page
+    # 
+    # @param source [String] is the fully qualified resource path, default is nil
+    # @note if source is not provided, a random game from the JArchive site is selected
     def new_game!(source=nil)
-      source = games(seasons.sample).sample unless source
+      source = game_list(season_list.sample).sample unless source
       @doc = parse source
       games.push(Game.new(source, rounds))
       @game = games.last
@@ -27,10 +28,8 @@ module Jeopardy
     private
     attr_reader :doc, :games
     SeasonsURL = "http://www.j-archive.com/listseasons.php"
-    #TestSeasons = 'test/jeopardy/files/seasons.html'
-    #TestGames = 'test/jeopardy/files/episodes.html'
 
-    # Uncaught error: Errno::ENOENT if path is invalid
+    # Can raise Uncaught error: Errno::ENOENT if path is invalid
     def parse source
       Nokogiri::HTML(open(source))
     end
@@ -45,7 +44,6 @@ module Jeopardy
 
     # Get a list of all games of Jeopardy from a season, from JArchive or a provided source
     def game_list(source)
-      binding.pry
       games_node = parse source
       games_node.xpath("//div[@id='content']//table//a").map { |episode| episode["href"] }.reverse
     end
