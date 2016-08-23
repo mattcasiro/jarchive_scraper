@@ -1,4 +1,6 @@
-require 'pry'
+require 'lib/jeopardy/scraper'
+require 'lib/jeopardy/category'
+require 'lib/jeopardy/category_selector'
 
 class GameBuilder
   class DuplicateGameError < StandardError
@@ -7,7 +9,8 @@ class GameBuilder
   attr_reader :games
 
   def initialize(num=1, user_paths=nil)
-    raise ArgumentError, "Incorrect number of user_paths" if user_paths && user_paths.size != num
+    raise ArgumentError, "Incorrect number of user_paths" if user_paths &&
+                                                             user_paths.size != num
     sources = []
     scraper = Jeopardy::JArchiveScraper.new
     @games = (0...num).map do |i|
@@ -19,8 +22,8 @@ class GameBuilder
       end
       sources.push tmp.source
 
-      # Reduce game to three categories (one per round)
-      begin
+      rounds = begin
+        # Reduce game to three categories (one per round)
         [
           r1 = Jeopardy::CategorySelector.new(tmp.rounds[0]).category,
           r2 = Jeopardy::CategorySelector.new(tmp.rounds[1]).category,
@@ -29,6 +32,18 @@ class GameBuilder
       rescue ArgumentError => err
         raise err if user_paths
         redo
+      end
+      # Reduce categories to three clues
+      multiplier = 1
+      rounds.map do |category|
+        clues = category.clues.reject { |clue| clue.nil? }
+        if clues.size > 2 then
+          clues[0].value = 200 * multiplier
+          clues[1].value = 600 * multiplier
+          clues[2].value = 1000 * multiplier
+        end
+        multiplier += 1
+        Jeopardy::Category.new category.name, clues[0..2]
       end
     end
   end

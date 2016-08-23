@@ -1,3 +1,4 @@
+require 'jeopardy/game'
 require 'nokogiri'
 require 'open-uri'
 

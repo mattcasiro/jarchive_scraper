@@ -4,7 +4,7 @@ module Jeopardy
     LINK_STR = "a href="
     VDD_STR = "[Video Daily Double]"
 
-    # Creates a cleaned round of jeopardy which only contains valid categories.
+    # Creates a cleaned round of jeopardy which only contains valid clues
     # A valid category must contain three or more valid clues.
     #
     # @param rnd [Round] a round from a valid game of Jeopardy.
@@ -23,8 +23,8 @@ module Jeopardy
 
     private
     # Returns a new round that:
-    #   - Only contains valid clues
-    #   - Only contains categories valid categories and defined above
+    #   - Only contains three valid clues
+    #   - Only contains valid categories as defined above
     def clean_round round
       valid_categories = round.categories.map do |category|
         valid_clues = category.clues.select { |clue| !invalid_clue? clue }

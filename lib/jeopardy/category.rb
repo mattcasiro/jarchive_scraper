@@ -1,3 +1,5 @@
+require 'jeopardy/clue'
+
 module Jeopardy
   class Category
     attr_reader :clues, :name

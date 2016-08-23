@@ -1,4 +1,4 @@
-require 'pry'
+require 'jeopardy/category'
 
 module Jeopardy
   class Round

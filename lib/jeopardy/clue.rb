@@ -1,5 +1,3 @@
-require 'pry'
-
 module Jeopardy 
   class Clue
     include Comparable

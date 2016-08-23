@@ -1,4 +1,4 @@
-require 'pry'
+require 'jeopardy/round'
 
 module Jeopardy
   class Game
